@@ -65,11 +65,17 @@ supported on a server to a connecting peer.  See also Section 3.4 for
 a discussion of signaling.
 ```
 
-These specifications assume that a RADIUS client can directly contact a RADIUS server, which is the normal "forward" path for packets between a client and server.  However, the reverse connection is not always possible.  If a RADIUS server wishes to act as a CoA client, and send CoA packets to the NAS (CoA server), the "reverse" path is often blocked by a firewall, NAT gateway, etc.
+These specifications assume that a RADIUS client can directly contact a RADIUS server, which is the normal "forward" path for packets between a client and server.  However, the reverse connection is not always possible or even desirable.  If a RADIUS server wishes to act as a CoA client, and send CoA packets to the NAS (CoA server), the "reverse" path is often blocked by a firewall, NAT gateway, etc.  That is, a RADIUS server has to be reachable by a NAS, but there is usually a requirement that the NAS is not reachable from any public system.
 
-When the reverse path is blocked, it means that it is impossible to use CoA packets in a roaming / federated environment such as Eduroam or OpenRoaming.  There are resulting business and security issues, such as the inability to disconnect an online user when their account has been terminated.
+As the reverse path is usally blocked, it means that it is in general possible only to send CoA packets to a NAS when the NAS and RADIUS server share the same private network (private IP space or IPSec).  Even though [RFC8559] defines CoA proxying, it does not solve the issue of NAS reachability.
 
-This specification solves that problem.  The solution is to simply allow CoA packets to go in "reverse" down an existing RADIUS/TLS connection.  That is, when a NAS connects to a RADIUS server it normally sends request packets (Access-Request, etc.) and expects to receive response packets (Access-Accept, etc.).  This specification extends RADIUS by permitting a RADIUS server to re-use an existing TLS connection to send CoA packets to the NAS, and permitting the NAS to send CoA response packets to the RADIUS server over that same connection.
+The problem is most evident in a roaming / federated environment such as Eduroam or OpenRoaming.  It is in general impossible for a home server to signal the NAS to disconnect a user.  There is no direct reverse path from the home server to the NAS, as the NAS is not publicly addressible.  Even if there was a public reverse path, it would generally be unknowable, as intermediate proxies can (and do) attribute rewriting to hide NAS identies.
+
+These limitations result in business and security issues, such as the inability to disconnect an online user when their account has been terminated.
+
+This specification solves that problem.  The solution is to simply allow CoA packets to go in "reverse" down an existing RADIUS/TLS connection.  That is, when a NAS connects to a RADIUS server it normally sends request packets (Access-Request, etc.) and expects to receive response packets (Access-Accept, etc.).  This specification extends RADIUS/TLS by permitting a RADIUS server to re-use an existing TLS connection to send CoA packets to the NAS, and permitting the NAS to send CoA response packets to the RADIUS server over that same connection.
+
+We note that while this document specifically mentions RADIUS/TLS, it should be possible to use the same mechanisms on RADIUS/DTLS [RFC7360].  However at the time of writing this specification, no implementations exist for "reverse CoA" over RADIUS/DTLS.  We also note that while (in theory) this same mechanism could be used for RADIUS/UDP and RADIUS/TCP, there is no value in defining "reverse CoA" for those transports.  Therefore for practial purposes, "reverse CoA" means RADIUS/TLS.
 
 There are additional considerations for proxies.  While [RFC8559] describes CoA proxying, there are still issues which need to be addressed for the "reverse CoA" use-case.  This specification describes how a proxy can implement "reverse CoA" proxying, including signalling necessary to negotiate this functionality.
 
@@ -79,7 +85,7 @@ There are additional considerations for proxies.  While [RFC8559] describes CoA 
 
 * CoA
 
-> Change of Authorition packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request and Disconnect-Request packets.
+> Change of Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request and Disconnect-Request packets.
 
 * RADIUS
 
@@ -101,13 +107,9 @@ There are additional considerations for proxies.  While [RFC8559] describes CoA 
 
 > RADIUS over the Datagram Transport Layer Security protocol  [RFC7360]
 
-* SRADIUS
-
-> The Secure RADIUS protocol, as defined in this document.  We use SRADIUS interchangeable for TLS and for DTLS transport.
-
 * TLS
 
-> the Transport Layer Security protocol.  Generally when we refer to TLS in this document, we are referring to RADIUS/TLS and/or RADIUS/DTLS.
+> the Transport Layer Security protocol.
 
 # Reverse CoA between Client and Server
 
@@ -123,9 +125,11 @@ However, a NAS may contain multiple and independent processing modules.  In that
 
 Instead, the RADIUS server must somehow determine that a particular connection is for a particular subsystem, and only send CoA packets when the subsystem matches.
 
-i.e. Accounting-Request contains Operator-NAS-Identifier ([RFC8559] Section 3.4).  And each connection sends a Status-Server packet containing the same Operator-NAS-Identifier.
+i.e. Accounting-Request contains Operator-NAS-Identifier ([RFC8559] Section 3.4).
 
 ## Dynamic Negotiation
+
+Instead of having a configuration flag, each connection could send a Status-Server packet containing the same Operator-NAS-Identifier.  This packet is the first packet sent when the connection is opened, in order to perform per-connection signalling.
 
 [RFC6614] permits the use of Status-Server over RADIUS/TLS connections, as an application-level watchdog timer [RFC3539].  We leverage that functionality here.
 
@@ -181,17 +185,9 @@ This document increases network security by removing the requirement for non-sta
 
 TBD - new RADIUS attribute
 
-Define a new registry for Operator-Name.  3 columns:
-
-* 1 character Namespace ID
-* description
-* reference
+User Operator Namespace Identifier namespace.
 
 ```
-0,TADIG,RFC5580
-1,Realm,RFC5580
-2,E212,RFC5580
-3,ICC,RFC5580
 +,Realm Add,(this document)
 -,Realm Delete,(this document)
 ```
