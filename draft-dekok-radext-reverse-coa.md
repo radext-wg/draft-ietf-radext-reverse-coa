@@ -87,18 +87,6 @@ There are additional considerations for proxies.  While [RFC8559] describes CoA 
 
 > Change of Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request and Disconnect-Request packets.
 
-* RADIUS
-
-> The Remote Authentication Dial-In User Service protocol, as defined in [RFC2865], [RFC2865], and [RFC5176] among others.
-
-* RADIUS/UDP
-
-> RADIUS over the User Datagram Protocol as define above.
-
-* RADIUS/TCP
-
-> RADIUS over the Transmission Control Protocol [RFC6613]
-
 * RADIUS/TLS
 
 > RADIUS over the Transport Layer Security protocol [RFC6614]
@@ -107,31 +95,107 @@ There are additional considerations for proxies.  While [RFC8559] describes CoA 
 
 > RADIUS over the Datagram Transport Layer Security protocol  [RFC7360]
 
-* TLS
+# Concepts
 
-> the Transport Layer Security protocol.
+There are a number of related problems which need to be solved in order for reverse CoA to work:
 
-# Reverse CoA between Client and Server
+* routing across a proxy network to a particular visited server.  The proxies are often managed by unrelated administrators.
 
-The reverse CoA functionality must be enabled somehow, either administratively via a configuration flag, or dynamically via per-connection negotiation.
+* routing from the visited server to a particular NAS.  There is usually no proxying here, or if there is, it's all under one administration
+
+* signalling from client to server that this functionality is available on a connection.
+
+We discuss these issues in reverse order.
+
+# Capability configuration and negotiation
+
+There are two ways to enable this functionality.  The first is a simple static configuration between client and server, where both are configured to allow reverse CoA.  The second method is via per-connection signalling between client and server.
 
 ## Configuration Flag
 
-Clients and servers SHOULD  be administratively configured with a flag which indicates that the other party supports the reverse CoA functionality.  Such a flag can be used where the parties are known to each other.
+Clients and servers SHOULD have a configuration a flag which indicates that the other party supports the reverse CoA functionality.  That is, the client has a per-server flag enabling (or not) reverse CoA functionality.  The server has a similar per-client flag.
 
-This flag is best used for a direct connection between a NAS and a RADIUS server.  In that situation, (subject to [RFC5176] requirements), the NAS will be able to accept and process all CoA packets, no matter what their contents.  That is, the NAS will not act as a proxy to forward packets.
+The flag can be used where the parties are known to each other, i.e. not for dynamic discovery as with [RFC7585].  The flag can also be used where there is only one subsystem on the client which sends packets.
 
-However, a NAS may contain multiple and independent processing modules.  In that situation, the NAS may have multiple RADIUS/TLS connections from the same source IP address.  It may not be always possible to send CoA packets down any RADIUS/TLS connection with that source IP, and have them go to the correct sub-module of the NAS.
+For example, a NAS may have one public IP address, but internally it may contain multiple and independent processing modules.  In that situation, the NAS may have multiple RADIUS/TLS connections from the same source IP address.  It may not be always possible to send CoA packets down any RADIUS/TLS connection with that source IP, and have them received by the correct sub-module of the NAS.
 
-Instead, the RADIUS server must somehow determine that a particular connection is for a particular subsystem, and only send CoA packets when the subsystem matches.
-
-i.e. Accounting-Request contains Operator-NAS-Identifier ([RFC8559] Section 3.4).
+For these reasons, it is useful to allow for dynamic negotiation of reverse coa on a per-connection basis.
 
 ## Dynamic Negotiation
 
-Instead of having a configuration flag, each connection could send a Status-Server packet containing the same Operator-NAS-Identifier.  This packet is the first packet sent when the connection is opened, in order to perform per-connection signalling.
+The reverse CoA functionality can be signalled on a per-connection basis by the client sending a Status-Server packet when it first opens a connection to a server.  This packet contains a Capability attribute, with value "Reverse-CoA".  The existence of this attribute in a Status-Server packet indicates that the client supports reverse CoA over this connection.  The Status-Server packet is the first packet sent when the connection is opened, in order to perform per-connection signalling.  A server which does not implement reverse CoA simply ignores this attribute, as per [RFC2865] Section 5.
 
-[RFC6614] permits the use of Status-Server over RADIUS/TLS connections, as an application-level watchdog timer [RFC3539].  We leverage that functionality here.
+A server implementing reverse CoA does not need to signal the NAS in response, to indicate that it is also has this capability.  If the server never sends reverse CoA packets, then such signalling is unnecessary.  If the server does send reverse CoA packets, then the packets themselves serve as sufficiant signalling.
+
+The NAS may send additional Status-Server packets down the same connection, as per [RFC3539].  These packets do not need to contain the Capability attribute, so it can generally be omitted.  That is, there is no need to signal the addition or removal of reverse CoA functionality during the lifetime of one connection.
+
+This Status-Server packet may also contain multiple Operator-Name attributes.  The use of this attribute is discussed in more detail below.
+
+# Routing of Reverse CoA packets
+
+There are multiple types of reverse CoA routing which are possible:
+
+* direct connection NAS to server, NAS has no subsystems, and there is no realm routing,
+* direct connection NAS to server, but the NAS has multiple subsystems, and there is no realm routing,
+* Proxy to proxy connections, all CoA routing is done on Operator-Name, as per [RFC8559] Section 5.2.
+
+In the first scenario, CoA packets are routed as described in [RFC5176], except that the packets are no permitted to go in "reverse" over a RADIUS/TLS connection.
+
+In the seecond scenario, the Operator-NAS-Identifier attribute is used by the visited server to distinguish connections, and to route reverse CoA packets to the correct connection, and thus the correct NAS subsystem.
+
+In the final scenario, we have server to server proxying.  Routing is done using the Operator-Name attribute, as defined in [RFC8559].
+
+We discuss these scenarios in more detail below.  We also address the issue of identifying a particular NAS or NAS subsystem, in order for a reverse CoA proxy to make the association between a connection with a particular NAS.
+
+## Direct NAS to server connections
+
+In the simplest case, the server simply routes reverse CoA packets over any available connection (NAS to server).  All connections can be treated as identical, in that they connect to the same logical endpoint.  Any CoA packet can be sent down any connection, and there is no further routing of packets past the NAS.
+
+Routing is done in "reverse" over a RADIUS/TLS connection.  All routing decisions are made as defined in [RFC5176].  The server may have connections from multiple NASses, and packets are routed to the correct NAS.  However, multiple connections from one NAS are treated as identical.  Any connection can be used to send reverse CoA packets to that NAS.
+
+For any more complex scenario, we have to first determine a way to identify the NAS.
+
+## NAS Identification
+
+RADIUS/TLS as defined in [RFC6614] does not need to identify NASes, other than as known / unknown, via certificates or PSKs.  It doesn't matter which NAS a connection belongs to, as the NAS is originating all traffic.  The server just takes the packets, and handles them.  i.e. if two connections have packets with the same (or different) NAS-Identifier, it doesn't matter.  The server just stores that data, and does not examine it any further.
+
+CoA proxying as defined in [RFC8559] routes packets globally based on Operator-Realm, or locally based on Operator-NAS-Identifier.  In which case the local server has a well-defined mapping between CoA server (NAS) and Operator-NAS-Identifier.  This mapping is local to the server, and is not known by the NAS.  The mapping is likely created and managed by the RADIUS server which is closest to the NAS.  This association could be static, and based on NAS IP address, or it could be based on any other information which is available to the administrator.
+
+For this specification, we have the problem where multiple NASes may be connecting to a server behind a NAT gateway.  At which point we need to route packets to the correct NAS, which means that we need to identify the NAS.  In RADIUS, the only identity a NAS has is its source IP.  For RADIUS/TLS, the NAS is _permitted_ based on its TLS parameters (cert, etc.).  But it has no _identity_ as such.
+
+For reverse CoA to work, the server sending the CoA packets to the NAS has to identify that NAS, on a per-connection basis.  The solution here is to note that [RFC5997] Section 5 says:
+
+```
+A Status-Server packet SHOULD contain one of (NAS-IP-Address or NAS-IPv6-Address), or NAS-Identifier, or both NAS-Identifier and one of (NAS-IP-Address or NAS-IPv6-Address).
+```
+
+We suggest here that a server implementing reverse CoA simply make an association between the NAS identification attributes available in a Status-Server packet, and the RADIUS/TLS connection on which that packet was received.  There may be multiple RADIUS/TLS connections from the NAS, so this association is not one-to-one.  An implementation MUST support multiple connections the same NAS.
+
+When the server needs to send a reverse CoA packet to the NAS, it can look at the CoA packet for the same NAS identification attributes, selects one of the available connections, and sends the packet down the chosen connection.
+
+If no connections to the NAS are available, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable"), as per [RFC9559] Section 4.3.1.
+
+When multiple connections to the same NAS are available, the choice of which connection to use is implementation-specific.  For the purpose of this specification, all of the connections are identical in functionality.  It is RECOMMENDED that implementations use fail-over and load-balancing techniques similar to those used for proxying normal RADIUS packets.
+
+## NAS with Multiple Subsystems
+
+Once we have a way to identify a NAS, it is then trivial to differentiate multiple subsystems within one NAS.  We simply require that each subsystem use a unique value for the NAS-Identifier attribute.
+
+The subsystems may use different values for the NAS-IP-Address or NAS-IPv6-Address attributes, but at that point they are essentially different NASes.
+
+If the NAS can route reverse CoA packets internally between different subsystems, it SHOULD use the same identification attributes in Status-Server packets for outgoing RADIUS/TLS connections.
+
+If the NAS cannot route reverse CoA packets internally between different subsystems, it MUST use different values for identification attributes in Status-Server packets for outgoing RADIUS/TLS connections.
+
+## Proxying Reverse CoA Packets
+
+Proxying is still done as per [RFC8559] Section 3.3.
+
+* look up the realm in the reverse CoA realm table to find an outgoing connection (allowing wildcard)
+  * send the packet on the found connection
+  * Where the realm is unknown or not routable, the proxy MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").
+
+[RFC6614] permits the use of Status-Server over RADIUS/TLS connections, as an application-level watchdog timer [RFC3539].  We extend the functionality to allow signalling about realm availability.
 
 * Status-Server SHOULD contain one or more Operator-Name attributes [RFC5580] Section 4.1.
 * Operator-Name is '+' and then 'realm' to add a realm
@@ -139,31 +203,6 @@ Instead of having a configuration flag, each connection could send a Status-Serv
 * Operator-Name is '-' and then 'realm' to delete a specific realm
   * bare `-` is "delete all realms"
   * these are processed in order, so "-" followed by "+example.org" means "delete all realms, and add only one for example.org"
-
-AND/OR
-
-* Operator-NAS-Identifier
-  * if this exists and contains a value, it will accept all user sessions for that NAS.
-  * more than one can exist in the same packet :(
-
-
-# Proxying Reverse CoA
-
-Proxying is still done as per [RFC8559] Section 3.3.
-
-* look up the realm in the reverse CoA realm table to find an outgoing connection (allowing wildcard)
-  * send the packet on the found connection
-  * Where the realm is unknown or not routable, the proxy MUST return a NAK packet that
-   contains an Error-Cause Attribute having value 502 ("Request Not
-   Routable").
-
-We also update [RFC8559] Section 3.4 to permit Status-Server packets to contain zero or one instance of the Operator-NAS-Identifier attribute.
-
-We extend [RFC8559] Section 3.3 to allow also allow proxying via Operator-NAS-Identifier.
-
-* if there's an Operator-NAS-Identifier in the packet, look that up in the NAS routing table
-  which is another "key to connection" mapping table as with Operator-Name
-
 
 # Implementation Status
 
@@ -183,7 +222,7 @@ This document increases network security by removing the requirement for non-sta
 
 # IANA Considerations
 
-TBD - new RADIUS attribute
+TBD - new RADIUS attribute - Capability
 
 User Operator Namespace Identifier namespace.
 
@@ -194,7 +233,7 @@ User Operator Namespace Identifier namespace.
 
 # Acknowledgements
 
-Thanks to Heikki Vatiainen for doing a preliminary implementation in Radiator, and for verifying interoperability with NAS equipment.
+Thanks to Heikki Vatiainen for testing a preliminary implementation in Radiator, and for verifying interoperability with NAS equipment.
 
 # Changelog
 
