@@ -152,9 +152,9 @@ The "reverse" routing table for CoA packets was first described in Section 2.1 o
 
 In our extension, the table does not map realms to home servers.  Instead, it maps keys to connections.  The keys will be defined in more detail below.  For now, we say that keys can be derived from a RADIUS client to server connection, and from the contents of a CoA packet which needs to be routed.
 
-When the server recieves a TLS connection from a client, it derives a key for that connection, and associates the connection with that key.  A server MUST support associating one particular key value with multiple connections.  A server MUST support associating multiple keys for one connection.  That is, the "key to connection" mapping is N to M.  It is not one-to-one, or 1-N, or M-1.
+When the server receives a TLS connection from a client, it derives a key for that connection, and associates the connection with that key.  A server MUST support associating one particular key value with multiple connections.  A server MUST support associating multiple keys for one connection.  That is, the "key to connection" mapping is N to M.  It is not one-to-one, or 1-N, or M-1.
 
-When the server recieves a CoA packet, it derives a key from that packet, and determines if there is a connection or connections which maps to that key.  Where there is no available connection, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").
+When the server receives a CoA packet, it derives a key from that packet, and determines if there is a connection or connections which maps to that key.  Where there is no available connection, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").
 
 As with normal proxying, a particular packet can sometimes have the choice more than one connection which can be used to reach a destination.  In that case, issues of load-balancing, fail-over, etc. are implementation-defined, and are not discussed here.  The server simply chooses one connection, and sends the reverse CoA packet down that connection.
 
@@ -170,7 +170,7 @@ Retransmissions of reverse CoA packets are handled identically to normal CoA pac
 
 # Implementation Status
 
-FreeRADIUS supports CoA proxying using Vendor-Specific attributes.  It also permits RADIUS clients to send Status-Server packets over a RADIUS/TLS connection which contain Operator-Name.  This information is used to determne which realms are accessible via reverse CoA over which RADIUS/TLS connection.
+FreeRADIUS supports CoA proxying using Vendor-Specific attributes.
 
 Cisco supports reverse CoA as of Cisco IOS XE Bengaluru 17.6.1 via Vendor-Specific attributes.  https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-6/configuration_guide/sec/b_176_sec_9300_cg/configuring_radsec.pdf
 
@@ -186,14 +186,9 @@ This document increases network security by removing the requirement for non-sta
 
 # IANA Considerations
 
-TBD - new RADIUS attribute - Capability
+This document requests no action from IANA.
 
-User Operator Namespace Identifier namespace.
-
-```
-+,Realm Add,(this document)
--,Realm Delete,(this document)
-```
+RFC Editor: This section may be removed before publication.
 
 # Acknowledgements
 
