@@ -1,7 +1,7 @@
 ---
 title: Reverse CoA in RADIUS
 abbrev: Reverse CoA
-docname: draft-dekok-radext-reverse-coa-00
+docname: draft-dekok-radext-reverse-coa-01
 
 stand_alone: true
 ipr: trust200902
