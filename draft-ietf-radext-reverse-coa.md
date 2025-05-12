@@ -1,7 +1,7 @@
 ---
 title: Reverse CoA in RADIUS/TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-02
+docname: draft-ietf-radext-reverse-coa-03
 
 stand_alone: true
 ipr: trust200902
@@ -20,8 +20,8 @@ author:
 
 - ins: A. DeKok
   name: Alan DeKok
-  org: FreeRADIUS
-  email: aland@freeradius.org
+  org: InkBridge
+  email: alan.dekok@inkbridge.io
 
 - ins: V. Cargatser
   name: Vadim Cargatser
