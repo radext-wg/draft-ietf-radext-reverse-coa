@@ -1,7 +1,7 @@
 ---
 title: Reverse CoA in RADIUS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-01
+docname: draft-ietf-radext-reverse-coa-02
 
 stand_alone: true
 ipr: trust200902
@@ -120,35 +120,17 @@ The reverse CoA functionality is based on two additions to RADIUS.  The first ad
 
 In order for a RADIUS server to send reverse CoA packets to a client, it must first know that the client is capable of accepting these packets.
 
-This functionality can be enabled in one of two ways.  The first is a simple static configuration between client and server, where both are configured to allow reverse CoA.  The second method is via per-connection signalling between client and server.
-
-The server manages this functionality with two boolean flags, one per-client, and one per-connection.  The per-client flag can be statically configured, and if not present MUST be treated as having a "false" value.  The per-connection flag MUST be initialized from the per-client flag, and then can be dynamically negotiated after that.
-
-## Configuration Flag
-
-Clients and servers implementing reverse CoA SHOULD have a configuration flag which indicates that the other party supports the reverse CoA functionality.  That is, the client has a per-server flag enabling (or not) reverse CoA functionality.  The server has a similar per-client flag.
+Clients and servers implementing reverse CoA MUST have a configuration flag which indicates that the other party supports the reverse CoA functionality.  That is, the client has a per-server flag enabling (or not) reverse CoA functionality.  The server has a similar per-client flag.
 
 The flag can be used where the parties are known to each other.  The flag can also be used in conjunction with dynamic discovery ([RFC7585]), so long as the server associates the flag with the client identity and not with any particular IP address.  That is, the flag can be associated with any method of identifying a particular client such as TLS-PSK identity, information in a client certificate, etc.
 
 For the client, the flag controls whether or not it will accept reverse CoA packets from the server, and whether the client will do dynamic signalling of the reverse CoA functionality.
 
-Separately, each side also needs to have a per-connection flag, which indicates whether or not this connection supports reverse CoA.  The per-connection flag is initialized from the static flag, and is then dynamically updated after that.
+The configuration flag allows administators to statically enable this functionality, based on out-of-band discussions with other administators.  This process is best used in an environment where all RADIUS proxies are known (or required) to have a particular set of functionality, as with a roaming consortium.
 
-The configuration flags allow administators to statically enable this functionality, based on out-of-band discussions with other administators.  This process is best used in an environment where all RADIUS proxies are known (or required) to have a particular set of functionality, as with a roaming consortium.
+This specification does not define a way for clients and servers to negotiate this functionality on a per-connection basis.  The RADIUS protocol has little, if any, provisions for capability negotiations, and this specification is not the place to add that functionality.
 
-## Dynamic Signalling
-
-The reverse CoA functionality can be signalled on a per-connection basis by the client sending a Status-Server packet when it first opens a connection to a server.  This packet contains a Capability attribute (see below), with value "Reverse-CoA".  The existence of this attribute in a Status-Server packet indicates that the client supports reverse CoA over this connection.  The Status-Server packet MUST be the first packet sent when the connection is opened, in order to perform per-connection signalling.  A server which does not implement reverse CoA simply ignores this attribute, as per [RFC2865] Section 5.
-
-A server implementing reverse CoA does not need to signal the NAS in any response, to indicate that it is supports reverse CoA.  If the server never sends reverse CoA packets, then such signalling is unnecessary.  If the server does send reverse CoA packets, then the packets themselves serve as sufficiant signalling.
-
-The NAS may send additional Status-Server packets down the same connection, as per [RFC3539].  These packets do not need to contain the Capability attribute, so it can generally be omitted.  That is, there is no need to signal the addition or removal of reverse CoA functionality during the lifetime of one connection.  If a client decides that it no longer wants to support reverse CoA on a particular connection, it can simply tear down the connection, and open a new one which does not negotiate the reverse CoA functionality.
-
-Due to the limitations of RADIUS, any any dynamic signalling is necessarily hop-by-hop.  That is, there is no way to signal that there is a path through multiple proxies which supports this functionality.  Instead, each hop must independently signal that it supports reverse CoA for a particular connection.  The net outcome of multiple proxies signalling this funtionality will enable a full reverse path from home network to visited network.
-
-RADIUS client implementations which support reverse CoA MUST always signal that functionality in a Status-Server packet on any new connection.  There is little reason to save a few octets, and having explicit signalling can help with implementations, deployment, and debugging.  Having explicit signalling also means that it is more likly for there to be a complete path reverse path from all home networks to all visited networks.
-
-The combination of static configuration and dynamic configuration means that it is possible for client and server to both agree on whether or not a particular connection supports reverse CoA.
+Without notification, however, it is possible for clients and servers to have mismatched configurations.  Where a client is configured to accept reverse CoA packets and the next hop server is not configured to send them, no packets will be sent.  Where a client is configured to not accept reverse CoA packets and the next hop server is configured to send them, the client will silently discard these packets as per {{RFC2865, Section 3}}.  In both of those situations, reverse CoA packets will not flow, but there will be no other issues with this misconfiguration.
 
 # Reverse Routing
 
