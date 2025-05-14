@@ -1,7 +1,7 @@
 ---
-title: Reverse CoA in RADIUS/TLS
+title: Reverse Change of Authorization (CoA) in RADIUS/TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-03
+docname: draft-ietf-radext-reverse-coa-04
 
 stand_alone: true
 ipr: trust200902
@@ -29,9 +29,7 @@ author:
   email: vcargats@cisco.com
 
 normative:
-  BCP14: RFC8174
   RFC2865:
-  RFC3539:
   RFC7585:
   RFC8559:
 
@@ -39,15 +37,17 @@ informative:
   RFC5176:
   RFC6614:
   RFC7360:
+  I-D.ietf-radext-deprecating-radius:
+  I-D.ietf-radext-radiusdtls-bis:
 
 venue:
   group: RADEXT
   mail: radext@ietf.org
-  github: freeradius/reverse-coa.git
+  github: /radext-wg/draft-ietf-radext-reverse-coa
 
 --- abstract
 
-This document defines a "reverse change of authorization (CoA)" path for RADIUS packets.  This specification allows a home server to send CoA packets in "reverse" down a RADIUS/TLS connection.  Without this capability, it is impossible for a home server to send CoA packets to a NAS which is behind a firewall or NAT gateway.  The reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
+This document defines a "reverse Change of Authorization (CoA)" path for RADIUS packets.  This specification allows a home server to send CoA packets in "reverse" down a RADIUS/TLS connection.  Without this capability, it is impossible for a home server to send CoA packets to a NAS which is behind a firewall or NAT gateway.  The reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
 
 --- middle
 
@@ -76,7 +76,9 @@ This specification solves that problem.  The solution is to simply allow CoA pac
 
 We note that while this document specifically mentions RADIUS/TLS, it should be possible to use the same mechanisms on RADIUS/DTLS {{RFC7360}}.  However at the time of writing this specification, no implementations exist for "reverse CoA" over RADIUS/DTLS.  As such, when we refer to "TLS" here, or "RADIUS/TLS", we implicitly include RADIUS/DTLS in that description.
 
-We also note that while this same mechanism could theoretically be used for RADIUS/UDP and RADIUS/TCP, there is no value in defining "reverse CoA" for those transports.  Therefore for practial purposes, "reverse CoA" means RADIUS/TLS and RADIUS/DTLS.
+This mechanism does not depend on the underlying transport protocol, or interact with it.  It is therefore compatible not only with {{RFC6614}}, and {{RFC7360}}, but also with {{I-D.ietf-radext-radiusdtls-bis}} which will replace those earlier standards.
+
+This mechanism is not needed for RADIUS/UDP, as UDP is connectionless.  {{RFC8559}} suffices for CoA when using RADIUS/UDP.  For RADIUS/TCP, while this same mechanism could theoretically be used there, RADIUS/TCP is being deprecated by {{I-D.ietf-radext-deprecating-radius}}. Therefore for practial purposes, "reverse CoA" means RADIUS/TLS and RADIUS/DTLS.
 
 There are additional considerations for proxies.  While {{RFC8559}} describes CoA proxying, there are still issues which need to be addressed for the "reverse CoA" use-case.  This specification describes how those systems can implement "reverse CoA" proxying, including processing packets through both an intermediate proxy network, and at the visited network.
 
@@ -122,9 +124,7 @@ In order for a RADIUS server to send reverse CoA packets to a client, it must fi
 
 Clients and servers implementing reverse CoA MUST have a configuration flag which indicates that the other party supports the reverse CoA functionality.  That is, the client has a per-server flag enabling (or not) reverse CoA functionality.  The server has a similar per-client flag.
 
-The flag can be used where the parties are known to each other.  The flag can also be used in conjunction with dynamic discovery ({{RFC7585}}), so long as the server associates the flag with the client identity and not with any particular IP address.  That is, the flag can be associated with any method of identifying a particular client such as TLS-PSK identity, information in a client certificate, etc.
-
-For the client, the flag controls whether or not it will accept reverse CoA packets from the server, and whether the client will do dynamic signalling of the reverse CoA functionality.
+The flag can be used where the parties are known to each other.  The flag can also be used in conjunction with dynamic discovery ({{RFC7585}}), so long as the server associates the flag with the client identity and not with any particular IP address.  That is, the flag can be associated with any method of identifying a particular client such as TLS PSK identity, information in a client certificate, etc.
 
 The configuration flag allows administators to statically enable this functionality, based on out-of-band discussions with other administators.  This process is best used in an environment where all RADIUS proxies are known (or required) to have a particular set of functionality, as with a roaming consortium.
 
@@ -176,17 +176,23 @@ This document increases network security by removing the requirement for non-sta
 
 This document requests no action from IANA.
 
-RFC Editor: This section may be removed before publication.
-
 # Acknowledgements
 
 Thanks to Heikki Vatiainen for testing a preliminary implementation in Radiator, and for verifying interoperability with NAS equipment.
 
 # Changelog
 
+RFC Editor: This section may be removed before publication.
+
 * 00 - taken from draft-dekok-radext-reverse-coa-01
 
 * 01 - Bumped to avoid expiry
+
+* 02 - Bumped to avoid expiry
+
+* 03 - remove dynamic negotiation and cleanups
+
+* 04 - shephards review
 
 --- back
 
