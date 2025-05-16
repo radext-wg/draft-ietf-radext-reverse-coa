@@ -1,7 +1,7 @@
 ---
 title: Reverse Change of Authorization (CoA) in RADIUS/TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-04
+docname: draft-ietf-radext-reverse-coa-05
 
 stand_alone: true
 ipr: trust200902
@@ -30,13 +30,13 @@ author:
 
 normative:
   RFC2865:
-  RFC7585:
   RFC8559:
 
 informative:
   RFC5176:
   RFC6614:
   RFC7360:
+  RFC7585:
   I-D.ietf-radext-deprecating-radius:
   I-D.ietf-radext-radiusdtls-bis:
 
@@ -193,6 +193,8 @@ RFC Editor: This section may be removed before publication.
 * 03 - remove dynamic negotiation and cleanups
 
 * 04 - shephards review
+
+* 05 - tweak refs
 
 --- back
 
