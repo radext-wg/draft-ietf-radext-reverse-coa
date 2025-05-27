@@ -1,7 +1,7 @@
 ---
 title: Reverse Change of Authorization (CoA) in RADIUS/TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-05
+docname: draft-ietf-radext-reverse-coa-06
 
 stand_alone: true
 ipr: trust200902
@@ -70,7 +70,7 @@ This scenario is most evident in a roaming / federated environment such as Eduro
 
 These limitations can result in business losses and security problems, such as the inability to disconnect an online user when their account has been terminated.
 
-As the reverse path is usally blocked, it means that it is in general possible only to send CoA packets to a NAS when the NAS and RADIUS server share the same private network (private IP space or IPSec).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.
+As the reverse path is usally blocked, it means that it is in general possible only to send CoA packets to a NAS when the NAS and RADIUS server share the same private network (private IP space or IPsec).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.
 
 This specification solves that problem.  The solution is to simply allow CoA packets to go in "reverse" down an existing RADIUS/TLS connection.  That is, when a NAS connects to a RADIUS server it normally sends request packets (Access-Request, etc.) and expects to receive response packets (Access-Accept, etc.).  This specification extends RADIUS/TLS by permitting a RADIUS server to re-use an existing TLS connection to send CoA packets to the NAS, and permitting the NAS to send CoA response packets to the RADIUS server over that same connection.
 
@@ -158,11 +158,80 @@ Retransmissions of reverse CoA packets are handled identically to normal CoA pac
 
 # Implementation Status
 
-FreeRADIUS supports CoA proxying using Vendor-Specific attributes.
+RFC Editor: This section may be removed before publication.
 
-Cisco supports reverse CoA as of Cisco IOS XE Bengaluru 17.6.1 via Vendor-Specific attributes.  https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-6/configuration_guide/sec/b_176_sec_9300_cg/configuring_radsec.pdf
+This section records the status of known implementations of the
+protocol defined by this specification at the time of posting of
+this Internet-Draft, and is based on a proposal described in
+{{?RFC7942}}.  The description of implementations in this section is
+intended to assist the IETF in its decision processes in
+progressing drafts to RFCs.  Please note that the listing of any
+individual implementation here does not imply endorsement by the
+IETF.  Furthermore, no effort has been spent to verify the
+information presented here that was supplied by IETF contributors.
+This is not intended as, and must not be construed to be, a
+catalog of available implementations or their features.  Readers
+are advised to note that other implementations may exist.
 
-Aruba documentation states that "Instant supports dynamic CoA (RFC 3576) over RadSec and the RADIUS server uses an existing TLS connection opened by the Instant AP to send the request." https://www.arubanetworks.com/techdocs/Instant_83_WebHelp/Content/Instant_UG/Authentication/ConfiguringRadSec.htm
+According to {{?RFC7942}}, "this will allow reviewers and working
+groups to assign due consideration to documents that have the
+benefit of running code, which may serve as evidence of valuable
+experimentation and feedback that have made the implemented
+protocols more mature.  It is up to the individual working groups
+to use this information as they see fit".
+
+## FreeRADIUS
+
+The FreeRADIUS project has implemented this specification in the
+[v3.2.x](https://github.com/FreeRADIUS/freeradius-server/blob/v3.2.x)
+branch which is available on GitHub.  The feature is not enabled by
+default, and requires a build flag `WITH_COA_TUNNEL` to be defined
+before the new functionality is included with the software.
+
+Maturity: The implementation is at a "beta" level, but has been tested to work
+with other implementations.
+
+Coverage: All of this specification is supported.
+
+Version Compatibility: Earlier versions of this specification are not supported, but the current version is supported.
+
+Licensing: GPLv2
+
+Contact Information: http://freeradius.org/
+
+Date: This information was updated May 2025.
+
+## Cisco
+
+Cisco supports this specification as of Cisco IOS XE Bengaluru 17.6.1 via Vendor-Specific attributes.  [reference](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-6/configuration_guide/sec/b_176_sec_9300_cg/configuring_radsec.pdf)
+
+Maturity: The implementation is available in production.
+
+Coverage: All of this specification is supported.
+
+Version Compatibility: Earlier versions of this specification are not supported, but the current version is supported.
+
+Licensing: Proprietary
+
+Contact Information: http://cisco.com/
+
+Date: This information was updated October 2022.
+
+## Aruba
+
+Aruba documentation states that "Instant supports dynamic CoA (RFC 3576) over RadSec and the RADIUS server uses an existing TLS connection opened by the Instant AP to send the request." [reference](https://www.arubanetworks.com/techdocs/Instant_83_WebHelp/Content/Instant_UG/Authentication/ConfiguringRadSec.htm)
+
+Maturity: The implementation is available in production.
+
+Coverage: All of this specification is supported.
+
+Version Compatibility: Earlier versions of this specification are not supported, but the current version is supported.
+
+Licensing: Proprietary
+
+Contact Information: http://hp.com/
+
+Date: This information was updated October 2022.
 
 # Privacy Considerations
 
