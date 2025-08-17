@@ -150,7 +150,7 @@ This process occurs for all RADIUS proxies, except for the final one which sends
 
 When the server receives a reverse CoA packet, but cannot forward it, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").
 
-As with normal proxying, a particular packet can sometimes have the choice more than one connection which can be used to reach a destination.  In that case, issues of load-balancing, fail-over, etc. are implementation-defined, and are not discussed here.  The server simply chooses one connection, and sends the reverse CoA packet down that connection.
+As with normal proxying, a particular packet can sometimes have the choice of more than one connection which can be used to reach a destination.  In that case, issues of load-balancing, fail-over, etc. are implementation-defined, and are not discussed here.  For the purpose of this specification, when a server needs to send a reverse CoA connection to a NAS, it just chooses a connection which both supports reverse CoA, and which can route packets to the NAS.  The server then sends the CoA packet down the chosen connection.
 
 A server can also use RADIUS/UDP to send the reverse CoA packet; there is no requirement that all CoA packets use a "reversed" TLS connection.
 
