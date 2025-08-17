@@ -73,7 +73,7 @@ The Remote Authentication Dial-In User Service (RADIUS) protocol {{RFC2865}} is 
 
 When that inversion of roles takes place, the system sending the CoA requests is acting as a client, and the system receiving those requests is acting as a server.  In order to more clearly separate these roles, all connections between RADIUS clients and servers have historically been defined to be one way.  A client sends requests to a server, on a port which is dedicated to that role.  For RADIUS, there have been separate ports defined for authentication requests, accounting requests, and CoA requests.
 
-The initial transport protocol for all RADIUS was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requiremment that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as duiscussed in {{RFC6614, Section 2.5}}.
+The initial transport protocol for all RADIUS was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requirement that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as discussed in {{RFC6614, Section 2.5}}.
 
 ```
 Due to the use of one single TCP port for all packet types, it is
@@ -88,7 +88,7 @@ The limitation of this design is that it assumes that a RADIUS client can always
 
 The design of RADIUS requires that a client must be able to reach a server. But the reverse path from server to client for CoA is only usable when both client and server share a common and open network.  The existence of a firewall, NAT gateway, etc. between a client and server makes it impossible to create a reverse path, making it impossible to use the CoA functionality of {{RFC5176}}.
 
-This scenario is most evident in a roaming / federated environment such as eduroam ({{RFC7593}} and {{EDUROAM}}) or OpenRoaming ({{OPENROAMING}}).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.  In many roaming environments, there is no direct reverse path from the server to the NAS, as the NAS is not accessible from the Internet.  Even if there was a public reverse path, the chain of proxies effectively hides the location of the NAS.  Intermediate proxies can (and do) rewrite packet contents to hide NAS identies.  It is therefore in many cases impossible for a server to signal the NAS to disconnect a user.
+This scenario is most evident in a roaming / federated environment such as eduroam ({{RFC7593}} and {{EDUROAM}}) or OpenRoaming ({{OPENROAMING}}).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reach ability.  In many roaming environments, there is no direct reverse path from the server to the NAS, as the NAS is not accessible from the Internet.  Even if there was a public reverse path, the chain of proxies effectively hides the location of the NAS.  Intermediate proxies can (and do) rewrite packet contents to hide NAS Identities.  It is therefore in many cases impossible for a server to signal the NAS to disconnect a user.
 
 These limitations can result in business losses and security problems, such as the inability to disconnect an online user when their account has been terminated.
 
@@ -104,7 +104,7 @@ This mechanism does not depend on the underlying transport protocol, or interact
 
 This mechanism is not applicable for RADIUS/UDP, as  {{RFC5176}} and {{RFC8559}} are sufficient for CoA for the cases where the client and server can communicate directly.
 
-When the client and server cannot communicate directly, such as when a they are separated by a firewall or NAT, the nature of UDP makes it impossible to support reverse CoA.  Since UDP is connectionless, the server has no way of knowing whether or not the client is still receiving packets on a port.  A client may open a port, send a request, and then immediately close the port after receiving a response.  Alternatively, there could be a NAT between the client and server.  The NAT could time out its UDP state tracking, again with no indication to the server.  Therefore, any attempt by a server to use a reverse path for UDP is unlikely to work reliably.
+When the client and server cannot communicate directly, such as when a they are separated by a firewall or NAT, the nature of UDP makes it impossible to support reverse CoA.  Since UDP is connection-less, the server has no way of knowing whether or not the client is still receiving packets on a port.  A client may open a port, send a request, and then immediately close the port after receiving a response.  Alternatively, there could be a NAT between the client and server.  The NAT could time out its UDP state tracking, again with no indication to the server.  Therefore, any attempt by a server to use a reverse path for UDP is unlikely to work reliably.
 
 RADIUS/DTLS has similar issues to RADIUS/UDP with respect to NATs.  However, there is an underlying TLS session associated with a particular client to server connection.  So long as the TLS connection is functional, it can be used to send reverse CoA packets.  Where the TLS connection is not functional, no traffic will pass in either direction.
 
@@ -126,11 +126,11 @@ There are some additional considerations which need to be addressed in order for
 
 * ACK
 
-> Change of Authorization "positive acknowlegement" packets.  For brevity, when this document refers to "ACK" packets, it means either or both of CoA-ACK and Disconnect-ACK packets.
+> Change of Authorization "positive acknowledgment" packets.  For brevity, when this document refers to "ACK" packets, it means either or both of CoA-ACK and Disconnect-ACK packets.
 
 * NAK
 
-> Change of Authorization "negative acknowlegement" packets.  For brevity, when this document refers to "NAK" packets, it means either or both of CoA-NAK and Disconnect-NAK packets.
+> Change of Authorization "negative Acknowledgements" packets.  For brevity, when this document refers to "NAK" packets, it means either or both of CoA-NAK and Disconnect-NAK packets.
 
 * RADIUS/TLS
 
@@ -154,9 +154,9 @@ There are some additional considerations which need to be addressed in order for
 
 # Concepts
 
-The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration and signalling, to indicate that a RADIUS client is capable of accepting reverse CoA packets.  The second addition is an extension to the "reverse" routing table for CoA packets which was first described in Section 2.1 of {{RFC8559}}.
+The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration and signaling, to indicate that a RADIUS client is capable of accepting reverse CoA packets.  The second addition is an extension to the "reverse" routing table for CoA packets which was first described in Section 2.1 of {{RFC8559}}.
 
-# Capability Configuration and Signalling
+# Capability Configuration and Signaling
 
 In order for a RADIUS server to send reverse CoA packets to a client, it must first know that the client is capable of accepting these packets.
 
@@ -164,7 +164,7 @@ Clients and servers implementing reverse CoA MUST have a configuration flag whic
 
 The flag can be used where the parties are known to each other.  The flag can also be used in conjunction with dynamic discovery ({{RFC7585}}), so long as the server associates the flag with the client identity and not with any particular IP address.  That is, the flag can be associated with any method of identifying a particular client such as TLS PSK identity, information in a client certificate, etc.
 
-The configuration flag allows administators to statically enable this functionality, based on out-of-band discussions with other administators.  This process is best used in an environment where all RADIUS proxies are known (or required) to have a particular set of functionality, as with a roaming consortium.
+The configuration flag allows administrators to statically enable this functionality, based on out-of-band discussions with other administrators.  This process is best used in an environment where all RADIUS proxies are known (or required) to have a particular set of functionality, as with a roaming consortium.
 
 This specification does not define a way for clients and servers to negotiate this functionality on a per-connection basis.  The RADIUS protocol has little, if any, provisions for capability negotiations, and this specification is not the place to add that functionality.
 
