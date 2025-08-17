@@ -1,4 +1,4 @@
-M---
+---
 title: Reverse Change-of-Authorization (CoA) in RADIUS/(D)TLS
 abbrev: Reverse CoA
 docname: draft-ietf-radext-reverse-coa-06
@@ -73,14 +73,12 @@ The Remote Authentication Dial-In User Service (RADIUS) protocol {{RFC2865}} is 
 
 When that inversion of roles takes place, the system sending the CoA requests is acting as a client, and the system receiving those requests is acting as a server.  In order to more clearly separate these roles, all connections between RADIUS clients and servers have historically been defined to be one way.  A client sends requests to a server, on a port which is dedicated to that role.  For RADIUS, there have been separate ports defined for authentication requests, accounting requests, and CoA requests.
 
-The initial transport protocol for all RADIUS messages was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requirement that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as discussed in {{RFC6614, Section 2.5}}.
+The initial transport protocol for all RADIUS messages was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requirement that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as discussed in {{RFC6614, Section 2.5}}:
 
-```
-Due to the use of one single TCP port for all packet types, it is
-required that a RADIUS/TLS server signal which types of packets are
-supported on a server to a connecting peer.  See also Section 3.4 for
-a discussion of signaling.
-```
+> Due to the use of one single TCP port for all packet types, it is
+> required that a RADIUS/TLS server signal which types of packets are
+> supported on a server to a connecting peer.  See also Section 3.4 for
+> a discussion of signaling.
 
 That specification, however, still required that the systems still act as client and server.  The client connects to the server, and sends only requests.  The server waits for client connections, and only sends responses.  This flow of packets is referred to as the "forward" path.
 
@@ -124,7 +122,7 @@ Please see {{RFC5176, Section 1.3}} for the base terminology that is associated 
 
 * CoA
 
-> Change-of-Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request {{RFC5176, Section 2.2}} and Disconnect-Request {{RFC5176, Section 2.1}} packets.
+> Change-of-Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of the CoA-Request {{RFC5176, Section 2.2}} and Disconnect-Request {{RFC5176, Section 2.1}} packets.
 
 * ACK
 
@@ -156,9 +154,9 @@ Please see {{RFC5176, Section 1.3}} for the base terminology that is associated 
 
 # Concepts
 
-The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration and signaling, to indicate that a RADIUS client is capable of accepting reverse CoA packets.  The second addition is an extension to the "reverse" routing table for CoA packets which was first described in Section 2.1 of {{RFC8559}}.
+The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration and signaling method, to indicate that a RADIUS client is capable of accepting reverse CoA packets, which is discussed below in [](#signaling).  The second addition is an extension to the "reverse" routing table for CoA packets that was first described in Section 2.1 of {{RFC8559}}.  This addition is discussed below in [](#routing).
 
-# Capability Configuration and Signaling
+# Capability Configuration and Signaling {#signaling}
 
 In order for a RADIUS server to send reverse CoA packets to a client, it must first know that the client is capable of accepting these packets.
 
@@ -170,7 +168,7 @@ The configuration flag allows administrators to statically enable this functiona
 
 This specification does not define a way for clients and servers to negotiate this functionality on a per-connection basis.  The RADIUS protocol has little, if any, provisions for capability negotiations, and this specification is not the place to add that functionality.
 
-Without notification, however, it is possible for clients and servers to have mismatched configurations.  Where a client is configured to accept reverse CoA packets and the server is not configured to send them, no packets will be sent.  Where a client is configured to not accept reverse CoA packets and the server is configured to send them, the client will silently discard these packets as per {{RFC2865, Section 3}}.  In both of those situations, the reverse CoA functionality will not be available.
+Without notification, however, it is possible for clients and servers to have mismatched configurations.  Where a client is configured to accept reverse CoA packets and the server is not configured to send them, no packets will be sent.  Where a client is configured to not accept reverse CoA packets and the server is configured to send them, the client will silently discard these packets as per {{RFC2865, Section 3}}.  In both of those situations, the reverse CoA functionality will not be available.  There may be security issues when it is not possible to disconnect users, or to change their authorization.  See [](#security-considerations) for some additional comments on this topic.
 
 Any matched configuration for reverse CoA is therefore identical to the situation before reverse CoA was defined.  The relevant issues were discussed above in [](#introduction).
 
@@ -198,7 +196,7 @@ Without dynamic discovery, the system necessarily relies instead on the reverse 
 
 As such, it is RECOMMENDED that systems which use {{RFC7585}} for Access-Request and/or Accounting-Request packets also use the same method for CoA-Request and Disconnect-Request packets.
 
-# Reverse Routing across Proxies
+# Reverse Routing across Proxies {#routing}
 
 In normal RADIUS proxying. the forward routing table uses the User-Name attribute (via the Network Access Identifiers (NAIs) {{?RFC7542}}) to map realms to next hop servers.  For reverse CoA, {{RFC8559, Section 2.1}} uses the Operator-Name attribute to map a realm to one or more next hop servers.
 
@@ -307,9 +305,11 @@ Date: This information was updated October 2022.
 
 This document does not change or add any privacy considerations over previous RADIUS specifications.
 
-# Security Considerations
+# Security Considerations {#security-considerations}
 
-This document increases network security by removing the requirement for non-standard "reverse" paths for CoA-Request and Disconnect-Request packets.
+It can be necessary to disconnect users, or to change their authorization.  It is a security issue when these changes cannot be performed.  This specification therefore increases security by making it easier to enforce security policies across a chain of unrelated proxies.
+
+This document also increases network security by removing the requirement for non-standard "reverse" paths for CoA-Request and Disconnect-Request packets.
 
 # IANA Considerations
 
