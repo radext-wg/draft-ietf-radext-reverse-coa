@@ -1,7 +1,7 @@
 ---
 title: Reverse Change-of-Authorization (CoA) in RADIUS/(D)TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-06
+docname: draft-ietf-radext-reverse-coa-07
 updates: 8559
 
 stand_alone: true
