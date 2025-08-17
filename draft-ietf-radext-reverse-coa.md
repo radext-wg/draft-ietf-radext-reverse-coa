@@ -1,5 +1,5 @@
----
-title: Reverse Change of Authorization (CoA) in RADIUS/(D)TLS
+M---
+title: Reverse Change-of-Authorization (CoA) in RADIUS/(D)TLS
 abbrev: Reverse CoA
 docname: draft-ietf-radext-reverse-coa-06
 updates: 8559
@@ -61,7 +61,7 @@ venue:
 
 --- abstract
 
-This document defines a "reverse Change of Authorization (CoA)" path for RADIUS packets.  A TLS connection is normally used to forward request packets from a client to a server and to send responses from the server to the client.  This specification allows a server to send CoA request packets to the client in "reverse" down that connection, and for the client to send responses to the server.  Without this capability, it is in general impossible for a server to send CoA packets to a Network Access Server (NAS) that is located behind a firewall or NAT gateway.  This reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
+This document defines a "reverse Change-of-Authorization (CoA)" path for RADIUS packets.  A TLS connection is normally used to forward request packets from a client to a server and to send responses from the server to the client.  This specification allows a server to send CoA request packets to the client in "reverse" down that connection, and for the client to send responses to the server.  Without this capability, it is in general impossible for a server to send CoA packets to a Network Access Server (NAS) that is located behind a firewall or NAT.  This reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
 
 This document updates RFC8559.
 
@@ -69,11 +69,11 @@ This document updates RFC8559.
 
 # Introduction {#introduction}
 
-The Remote Authentication Dial-In User Service (RADIUS) protocol {{RFC2865}} is a client-server protocol where clients send requests to servers, and servers send responses to clients.  RADIUS was extended in {{RFC5176}} to define the ability to change a user's authorization, or disconnect the user via what are generally called "Change of Authorization" or "CoA" packets.  In this use-case, a server which normally receives authentication requests from a client instead sends CoA requests to that client.
+The Remote Authentication Dial-In User Service (RADIUS) protocol {{RFC2865}} is a client-server protocol where clients send requests to servers, and servers send responses to clients.  RADIUS was extended in {{RFC5176}} to define the ability to change a user's authorization, or disconnect the user via what are generally called "Change-of-Authorization" or "CoA" packets.  In this use-case, a server which normally receives authentication requests from a client instead sends CoA requests to that client.
 
 When that inversion of roles takes place, the system sending the CoA requests is acting as a client, and the system receiving those requests is acting as a server.  In order to more clearly separate these roles, all connections between RADIUS clients and servers have historically been defined to be one way.  A client sends requests to a server, on a port which is dedicated to that role.  For RADIUS, there have been separate ports defined for authentication requests, accounting requests, and CoA requests.
 
-The initial transport protocol for all RADIUS was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requirement that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as discussed in {{RFC6614, Section 2.5}}.
+The initial transport protocol for all RADIUS messages was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requirement that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as discussed in {{RFC6614, Section 2.5}}.
 
 ```
 Due to the use of one single TCP port for all packet types, it is
@@ -84,13 +84,13 @@ a discussion of signaling.
 
 That specification, however, still required that the systems still act as client and server.  The client connects to the server, and sends only requests.  The server waits for client connections, and only sends responses.  This flow of packets is referred to as the "forward" path.
 
-The limitation of this design is that it assumes that a RADIUS client can always contact a RADIUS server.  When a RADIUS server wishes to send CoA packets to a RADIUS client, it must initiate a new connection "reverse" path to that client.  Any existing TLS connection from that client is ignored, and is not used.  Even worse, the "reverse" path can be blocked by a firewall, NAT gateway, etc.
+The limitation of this design is that it assumes that a RADIUS client can always contact a RADIUS server.  When a RADIUS server wishes to send CoA packets to a RADIUS client, it must initiate a new connection "reverse" path to that client.  Any existing TLS connection from that client is ignored, and is not used.  Even worse, the "reverse" path can be blocked by an on-path stateful function (e.g. firewall, NAT, etc.).
 
-The design of RADIUS requires that a client must be able to reach a server. But the reverse path from server to client for CoA is only usable when both client and server share a common and open network.  The existence of a firewall, NAT gateway, etc. between a client and server makes it impossible to create a reverse path, making it impossible to use the CoA functionality of {{RFC5176}}.
+The design of RADIUS requires that a client must be able to reach a server. But the reverse path from server to client for CoA is only usable when both client and server share a common and open network.  In the past, many organisations which supported roaming did so via dedicated interconnections using IPSec.  This design allowed the connected parties to have a route for sending CoA packets, but the direct interconnections could be expensive to set up and maintain.  As such, a common practice is now to use RADIUS/(D)TLS.
 
-This scenario is most evident in a roaming / federated environment such as eduroam ({{RFC7593}} and {{EDUROAM}}) or OpenRoaming ({{OPENROAMING}}).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reach ability.  In many roaming environments, there is no direct reverse path from the server to the NAS, as the NAS is not accessible from the Internet.  Even if there was a public reverse path, the chain of proxies effectively hides the location of the NAS.  Intermediate proxies can (and do) rewrite packet contents to hide NAS Identities.  It is therefore in many cases impossible for a server to signal the NAS to disconnect a user.
+However, there is often a firewall, NAT, etc. between a client and server which blocks the reverse path for RADIUS/UDP or RADIUS/(D)TLS.  This scenario is most evident in a roaming / federated environment such as eduroam ({{RFC7593}} and {{EDUROAM}}) or OpenRoaming ({{OPENROAMING}}).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.  In many roaming environments, there is no direct reverse path from the server to the NAS, as the NAS is not accessible from the Internet.  Even if there was a public reverse path, the chain of proxies effectively hides the location of the NAS.  Intermediate proxies can (and do) rewrite packet contents to hide NAS identities.  It is therefore in many cases impossible for a server to send a request to the NAS.
 
-These limitations can result in business losses and security problems, such as the inability to disconnect an online user when their account has been terminated.
+These limitations can result in business losses and security problems, such as the inability to disconnect a user when their account has been terminated.
 
 ## The Solution
 
@@ -114,23 +114,25 @@ For the above reasons, therefore, the "reverse CoA" functionality is limited to 
 
 ## Chains of Proxies
 
-There are some additional considerations which need to be addressed in order for this specification to work across multiple proxies.  While {{RFC8559}} describes CoA proxying, this specification describes how those systems can implement "reverse CoA" proxying, including processing packets through both an intermediate proxy network, and at the visited network.
+There are some additional considerations which need to be addressed in order for this specification to work across multiple proxies.  While {{RFC8559}} describes CoA proxying, this specification describes how those systems can implement "reverse CoA" proxying, including processing packets through both an intermediate proxy network, and at any visited network which is not able to directly authenticate the user.
 
 # Terminology
 
 {::boilerplate bcp14}
 
+Please see {{RFC5176, Section 1.3}} for the base terminology that is associated with Change-of-Authorization.
+
 * CoA
 
-> Change of Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request {{RFC5176, Section 2.2}} and Disconnect-Request {{RFC5176, Section 2.1}} packets.
+> Change-of-Authorization packets.  For brevity, when this document refers to "CoA" packets, it means either or both of CoA-Request {{RFC5176, Section 2.2}} and Disconnect-Request {{RFC5176, Section 2.1}} packets.
 
 * ACK
 
-> Change of Authorization "positive acknowledgment" packets.  For brevity, when this document refers to "ACK" packets, it means either or both of CoA-ACK and Disconnect-ACK packets.
+> Change-of-Authorization "positive acknowledgment" packets.  For brevity, when this document refers to "ACK" packets, it means either or both of CoA-ACK and Disconnect-ACK packets.
 
 * NAK
 
-> Change of Authorization "negative Acknowledgements" packets.  For brevity, when this document refers to "NAK" packets, it means either or both of CoA-NAK and Disconnect-NAK packets.
+> Change-of-Authorization "negative Acknowledgements" packets.  For brevity, when this document refers to "NAK" packets, it means either or both of CoA-NAK and Disconnect-NAK packets.
 
 * RADIUS/TLS
 
@@ -144,7 +146,7 @@ There are some additional considerations which need to be addressed in order for
 
 > RADIUS over either DTLS or TLS.
 
-* TLS
+* (D)TLS
 
 > Either RADIUS/TLS or RADIUS/DTLS.
 
@@ -172,25 +174,53 @@ Without notification, however, it is possible for clients and servers to have mi
 
 Any matched configuration for reverse CoA is therefore identical to the situation before reverse CoA was defined.  The relevant issues were discussed above in [](#introduction).
 
+## Proxies
+
+As there is no RADIUS routing protocol, the administrator of a proxy is responsible for manually validating routing of packets across multiple proxies.
+
+# Connection Management
+
+This specification relies entirely on a client making a (D)TLS connection to a server.  Where the client does not make a connection to the server, or where the client quickly closes connections, the reverse CoA functionality will be less useful.
+
+Where a particular client and server combination is determined to support this functionality, the server may need to send reverse CoA packets at any time.  A client which does not send watchdog packets may have its connection state discarded by a firewall or NAT.  As such, the client SHOULD maintain at least connection open to the server at all times.
+
+The application watchdog mechanism defined in {{?RFC3539, Section 3.4}} SHOULD be used to maintain the connection.  The watchdog packet SHOULD be Status-Server, as defined in {{?RFC5997}}.
+
+The watchdog timer (Tw) which is defined in {{?RFC3539, Section 3.4.1}} SHOULD be initialized to 15 seconds, instead of the default value of 30 seconds.  A value of 30 seconds is likely to be high enough that intermediate nodes may discard connection state.  A value of 15 seconds is much less likely to result in the connection state being discarded.
+
+## Dynamic Discovery
+
+When {{RFC7585}} dynamic discovery is used, systems which need to send CoA packets to a destination can use the "aaa+dynauth" lookup that is defined in {{RFC7585, Section 2.1.1.1}}.  That process allows for systems to make (D)TLS connections directly to a destination.
+
+The reverse CoA functionality defined here is therefore useful, but is not strictly necessary when dynamic discovery is used.  However, problems arise when system needing to receive CoA packets chooses to not implement dynamic discovery for them, but instead to rely solely on the reverse CoA functionality
+
+Without dynamic discovery, the system necessarily relies instead on the reverse CoA functionality which uses the connections that it makes to servers.  If at any time the system drops its connections to a server, the server has no way to send the CoA packets.
+
+As such, it is RECOMMENDED that systems which use {{RFC7585}} for Access-Request and/or Accounting-Request packets also use the same method for CoA-Request and Disconnect-Request packets.
+
 # Reverse Routing across Proxies
 
-In normal RADIUS proxying. the forward routing table uses the User-Name attribute (via the Network Access Identifiers (NAIs) {{?RFC7542}}) to map realms to next hop servers.  For reverse CoA, {{RFC8559, Section 2.1}} uses the Operator-Name attribute to map operator identifiers to next hop servers.
+In normal RADIUS proxying. the forward routing table uses the User-Name attribute (via the Network Access Identifiers (NAIs) {{?RFC7542}}) to map realms to next hop servers.  For reverse CoA, {{RFC8559, Section 2.1}} uses the Operator-Name attribute to map a realm to one or more next hop servers.
 
-This specification extends the {{RFC8559, Section 2.1}} reverse routing table to allow the next hop to be found via an open TLS connection, rather than a destination hostname or IP address.  A server which needs to send reverse CoA packets to clients maintains a list of open TLS connections from clients.  It also associates both a reverse CoA capability, and one or more operator identifiers with each connection.
+This specification extends the {{RFC8559, Section 2.1}} reverse routing table to allow the next hop to be found via an open (D)TLS connection, rather than a destination hostname or IP address.  A server which needs to send reverse CoA packets to clients maintains a list of open (D)TLS connections from clients.  It also associates both a reverse CoA capability, and one or more realm with each connection.
 
-A server MUST support associating one operator identifier with multiple connections.  A server MUST support associating multiple operator identifiers with one connection.  That is, the "operator identifier to connection" mapping is not one-to-one, or 1:N, or M:1, it is N:M or many-to-many.
+A server MUST allow one realm to be associated with multiple connections.  A server MUST allow multiple realms to be associated with one connection.  That is, the "realm to connection" mapping is not one-to-one, or 1:N, or M:1, it is N:M, i.e. many-to-many.
 
-This process occurs for all RADIUS proxies, except for the final one which sends the CoA packet to the client.  That proxy forwards the reverse CoA packet to the client based on the Operator-NAS-Identifier attribute ({{RFC8559, Section 3.4}}) and/or other NAS identification attributes such as NAS-Identifier, NAS-IP-Address, or NAS-IPv6-Address.  The result is that there is a complete forwarding path from the home network which authenticates the user, back to the visited network where the user is currently located.
+This process occurs for all on-path RADIUS proxies, except for the final one which sends the CoA packet to the client.  That proxy forwards the reverse CoA packet to the client based on the Operator-NAS-Identifier attribute ({{RFC8559, Section 3.4}}) and/or other NAS identification attributes such as NAS-Identifier, NAS-IP-Address, or NAS-IPv6-Address.  The result is that there is a complete forwarding path from the home network which authenticates the user, back to the visited network where the user is currently located.
 
 ## Errors and Fail Over
 
-When the server receives a reverse CoA packet, but cannot forward it, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").
+This specification extends {{RFC8559, Section 3.2}} to handle the situation where the destinaion realm is known, but where there is no connection over which the request can be routed.
+
+When a receives an unexpected reverse CoA packet over a connection, it MUST be silently discarded as per {{RFC2865, Section 3}}.  A server SHOULD log a descriptive message about this error.  This behavior is unchanged from prior specifications.
+
+When a server supports reverse CoA, and receives a reverse CoA packet which cannot be forwarded, the server MUST return a NAK packet that contains an Error-Cause Attribute having value 502 ("Request Not Routable").  The server SHOULD also log a descriptive message about this error.  Logging errors helps an administrator discover and correct any deficiencies in the server configuration, or in its interaction with other systems.
 
 As with normal proxying, a particular packet can sometimes have the choice of more than one connection which can be used to reach a destination.  In that case, issues of load-balancing, fail-over, etc. are implementation-defined, and are not discussed here.  For the purpose of this specification, when a server needs to send a reverse CoA connection to a NAS, it just chooses a connection which both supports reverse CoA, and which can route packets to the NAS.  The server then sends the CoA packet down the chosen connection.
 
-A server can also use RADIUS/UDP to send the reverse CoA packet; there is no requirement that all CoA packets use a "reversed" TLS connection.
+A server can also use RADIUS/UDP to send the reverse CoA packet; there is no requirement that all CoA packets use a "reversed" (D)TLS connection.
 
-After sending a packet, the server then waits for a reply, doing retransmission if necessary.  For all issues other than the connection being used, reverse CoA packets are handled as defined in {{RFC5176}} and in {{RFC8559}}.  This specification permits reverse CoA packets to be sent on what would otherwise be a client to server TLS connection.  It does not change the basic functionality of proxying CoA packets.
+After sending a packet, the server then waits for a reply, doing retransmission if necessary.  For all issues other than the connection being used, reverse CoA packets are handled as defined in {{RFC5176}} and in {{RFC8559}}.  This specification permits reverse CoA packets to be sent on what would otherwise be a client to server (D)TLS connection.  It does not change the basic functionality of proxying CoA packets.
 
 ## Retransmissions
 
