@@ -47,15 +47,17 @@ venue:
 
 --- abstract
 
-This document defines a "reverse Change of Authorization (CoA)" path for RADIUS packets.  This specification allows a home server to send CoA packets in "reverse" down a RADIUS/TLS connection.  Without this capability, it is impossible for a home server to send CoA packets to a NAS which is behind a firewall or NAT gateway.  The reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
+This document defines a "reverse Change of Authorization (CoA)" path for RADIUS packets.  This specification allows a home server to send CoA packets in "reverse" down a RADIUS/TLS connection.  Without this capability, it is impossible for a home server to send CoA packets to a Network Access Server (NAS) which is behind a firewall or NAT gateway.  The reverse CoA functionality extends the available transport methods for CoA packets, but it does not change anything else about how CoA packets are handled.
 
 --- middle
 
 # Introduction
 
-{{RFC5176}} defines the ability to change a users authorization, or disconnect the user via what are generally called "Change of Authorization" or "CoA" packets.  This term refers to either of the RADIUS packet types CoA-Request or Disconnect-Request.  The initial transport protocol for all RADIUS was the User Datagram Protocol (UDP).
+The Remote Authentication Dial-In User Service (RADIUS) protocol {{RFC2865}} is a client-server protocol where clients send requests to servers, and servers send responses to clients.  RADIUS was extended in {{RFC5176}} to define the ability to change a users authorization, or disconnect the user via what are generally called "Change of Authorization" or "CoA" packets.  In this use-case, a server which normally receives authentication requests from a client instead sends CoA requests to that client.
 
-{{RFC6614}} updated previous specifications to allow packets to be sent over the Transport Layer Security (TLS) protocol.  Section 2.5 of that document explicitly allows all packets (including CoA) to be sent over a TLS connection:
+When that inversion of roles takes place, the system sending the CoA requests is acting as a client, and the system receiving those requests is acting as a server.  In order to more clearly separate these roles, all connections between RADIUS clients and servers have historically been defined to be one way.  A client sends requests to a server, on a port which is dedicated to that role.  For RADIUS, there have been separate ports defined for authentication requests, accounting requests, and CoA requests.
+
+The initial transport protocol for all RADIUS was the User Datagram Protocol (UDP).  {{RFC6614}} then updated RADIUS to allow packets to be sent over the Transport Layer Security (TLS) protocol.  The update also removed the requiremment that each type of packet use a dedicated port.  Instead, all packets (including CoA) can be be sent over a TLS connection, as duiscussed in {{RFC6614, Section 2.5}}:
 
 ```
 Due to the use of one single TCP port for all packet types, it is
@@ -64,13 +66,15 @@ supported on a server to a connecting peer.  See also Section 3.4 for
 a discussion of signaling.
 ```
 
-These specifications assume that a RADIUS client can directly contact a RADIUS server, which is the normal "forward" path for packets between a client and server.  However, it is not always possible for the RADIUS server to send CoA packets to the RADIUS client. If a RADIUS server wishes to act as a CoA client, and send CoA packets to the NAS (CoA server), the "reverse" path can be blocked by a firewall, NAT gateway, etc.  That is, a RADIUS server has to be reachable by a NAS, but there is usually no requirement that the NAS is reachable from a public system.  To the contrary, there is usually a requirement that the NAS is not publicly accessible.
+That specification, however, still required that the systems still act as client and server.  The client connects to the server, and sends only requests.  The server waits for client connections, and only sends responses.  This flow of packets is referred to as the "forward" path.
 
-This scenario is most evident in a roaming / federated environment such as Eduroam or OpenRoaming.  It is in general impossible for a home server to signal the NAS to disconnect a user.  There is no direct reverse path from the home server to the NAS, as the NAS is not publicly addressible.  Even if there was a public reverse path, it would generally be unknowable, as intermediate proxies can (and do) attribute rewriting to hide NAS identies.
+The limitation of this design is that it assumes that a RADIUS client can always contact a RADIUS server.  When a RADIUS server wishes to send CoA packets to a RADIUS client, it must initiate a new connection "reverse" path to that client.  Any existing TLS connection from that client is ignored, and is not used.  Even worse, the "reverse" path can be blocked by a firewall, NAT gateway, etc.
+
+The design of RADIUS requires that a RADIUS server has to be reachable by a NAS. But the reverse path is only usable when the RADIUS client and server share a common and open network.  The existence of a firewall, NAT gateway, etc. between a client and server makes it impossible to create a reverse path, making it impossible to use the CoA functionality of {{RF5176}}.
+
+This scenario is most evident in a roaming / federated environment such as Eduroam or OpenRoaming.  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.  In manu roaming environments, there is no direct reverse path from the home server to the NAS, as the NAS is not publicly addressible.  Even if there was a public reverse path, the chain of proxies effectively hides the location of the NAS.  Intermediate proxies can (and do) rewrite packet contents to hide NAS identies.  It is therefore in many cases impossible for a home server to signal the NAS to disconnect a user.
 
 These limitations can result in business losses and security problems, such as the inability to disconnect an online user when their account has been terminated.
-
-As the reverse path is usally blocked, it means that it is in general possible only to send CoA packets to a NAS when the NAS and RADIUS server share the same private network (private IP space or IPsec).  Even though {{RFC8559}} defines CoA proxying, that specification does not address the issue of NAS reachability.
 
 This specification solves that problem.  The solution is to simply allow CoA packets to go in "reverse" down an existing RADIUS/TLS connection.  That is, when a NAS connects to a RADIUS server it normally sends request packets (Access-Request, etc.) and expects to receive response packets (Access-Accept, etc.).  This specification extends RADIUS/TLS by permitting a RADIUS server to re-use an existing TLS connection to send CoA packets to the NAS, and permitting the NAS to send CoA response packets to the RADIUS server over that same connection.
 
