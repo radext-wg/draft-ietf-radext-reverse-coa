@@ -25,6 +25,10 @@ submit: ${DRAFT}.xml
 version:
 	@echo Version: ${VERSION}
 
+.PHONY: spell
+spell: $(DRAFT).md
+	aspell -d en_US -c $<
+
 clean:
 	@rm -f *.xml *~
 
