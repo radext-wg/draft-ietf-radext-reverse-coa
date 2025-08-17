@@ -30,12 +30,12 @@ author:
 
 normative:
   RFC2865:
-  RFC8559:
-
-informative:
   RFC5176:
   RFC6614:
   RFC7360:
+  RFC8559:
+
+informative:
   RFC7585:
   I-D.ietf-radext-deprecating-radius:
   I-D.ietf-radext-radiusdtls-bis:
