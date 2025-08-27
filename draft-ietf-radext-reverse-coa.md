@@ -1,7 +1,7 @@
 ---
 title: Reverse Change-of-Authorization (CoA) in RADIUS/(D)TLS
 abbrev: Reverse CoA
-docname: draft-ietf-radext-reverse-coa-07
+docname: draft-ietf-radext-reverse-coa-08
 updates: 8559
 
 stand_alone: true
@@ -32,11 +32,12 @@ author:
 normative:
   RFC2865:
   RFC5176:
-  RFC6614:
-  RFC7360:
   RFC8559:
+  I-D.ietf-radext-radiusdtls-bis:
 
 informative:
+  RFC6614:
+  RFC7360:
   RFC7585:
   RFC7593:
   EDUROAM:
@@ -52,7 +53,6 @@ informative:
      format:
        TXT:  https://wballiance.com/openroaming/
   I-D.ietf-radext-deprecating-radius:
-  I-D.ietf-radext-radiusdtls-bis:
 
 venue:
   group: RADEXT
