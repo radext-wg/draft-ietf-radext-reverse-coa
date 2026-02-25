@@ -154,9 +154,9 @@ Please see {{RFC5176, Section 1.3}} for the base terminology that is associated 
 
 # Concepts
 
-The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration and signaling method, to indicate that a RADIUS client is capable of accepting reverse CoA packets, which is discussed below in [](#signaling).  The second addition is an extension to the "reverse" routing table for CoA packets that was first described in Section 2.1 of {{RFC8559}}.  This addition is discussed below in [](#routing).
+The reverse CoA functionality is based on two additions to RADIUS.  The first addition is a configuration method, to indicate that a RADIUS client is capable of accepting reverse CoA packets, which is discussed below in [](#signaling).  The second addition is an extension to the "reverse" routing table for CoA packets that was first described in Section 2.1 of {{RFC8559}}.  This addition is discussed below in [](#routing).
 
-# Capability Configuration and Signaling {#signaling}
+# Capability Configuration {#signaling}
 
 In order for a RADIUS server to send reverse CoA packets to a client, it must first know that the client is capable of accepting these packets.
 
